@@ -37,6 +37,6 @@ var cnExcludePostfix = [
 //逗号：([\d\.,]+)
 //小数点：([\d\.]+)
 //原样输出的字段：(.+)
-var cnRegReplace = new Map([
+var cnRegReplace = new gityxGlobal.Map([
 
 ]);
