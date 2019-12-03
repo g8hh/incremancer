@@ -10,6 +10,7 @@ var cnItems = {
 	'brains': '大脑',
 	'Humans': '人类',
 	'Zombies': '僵尸',
+	'zombies': '僵尸',
 	'Level': '等级',
 	'Take control of a horde of zombies to ravage small towns': '控制一群僵尸破坏小镇',
 	'Energy refills over time. You need 10 energy to spawn a zombie by clicking on the ground.': '随着时间的流逝，能量会补充。 需要10能量才能单击地面来生成僵尸。',
@@ -32,6 +33,7 @@ var cnItems = {
 	'How to play': '游戏指引',
 	'Close': '关闭',
 	'Complete': '已完成',
+	'Completed': '已完成',
 	'Your zombies thirst for blood and do +1 damage for each rank of Bloodthirst.': '你的僵尸渴求鲜血，每等级的嗜血+1伤害。',
 	'Bloodthirst': '嗜血',
 	'Your zombies gain tougher skin and +10 health with each rank.': '每等级僵尸都会获得更坚硬的皮肤，+10生命值。',
@@ -49,13 +51,13 @@ var cnItems = {
 	'Master Summoner': '召唤大师',
 	'Primal Reflexes': '原始反射',
 	'Blood Harvest': '血液采集',
-	'': '',
-	'': '',
-	'': '',
-	'': '',
-	'': '',
-	'': '',
-	'': '',
+	'Available': '可用',
+	'Pause': '暂停',
+	'Cancel': '取消',
+	'Bones': '骨头',
+	'Construction': '建筑',
+	'Cursed Graveyard': '诅咒墓地',
+	'Graveyard': '墓地',
 	'': '',
 	'': '',
 	'': '',
@@ -76,6 +78,7 @@ var cnItems = {
 //需处理的前缀
 var cnPrefix = {
 	"Current Rank:":"当前等级:",
+	"Purchase":"购买",
 	":":":",
 }
 
@@ -86,8 +89,10 @@ var cnPostfix = {
 	
 	"max blood":"血液上限",
 	"max brains":"大脑上限",
+	"max bones":"骨头上限",
 	"blood":"血液",
 	"brains":"大脑",
+	"bones":"骨头",
 	"zombie damage":"僵尸伤害",
 	"zombie health":"僵尸生命",
 	"energy per second":"每秒能量恢复",
@@ -97,6 +102,10 @@ var cnPostfix = {
 	"chance for corpse to become zombie":"尸体复生为僵尸几率",
 	"blood required\n        ":"血液需求",
 	"brains required\n        ":"大脑需求",
+	"bones required\n        ":"骨头需求",
+	" blood)\n        ":" 血液)",
+	" brains)\n        ":" 大脑)",
+	" bones)\n        ":" 骨头)",
 	
 	
 	//排除收录
