@@ -8,8 +8,6 @@
     <meta name="theme-color" content="#104510" />
     <meta charset="utf-8"/>
     <link rel="manifest" href="manifest.json">
-    <script src='https://download.playfab.com/PlayFabClientApi.js'></script>
-    <script src='https://www.kongregate.com/javascripts/kongregate_api.js'></script>
     <script src="js/lz-string.min.js"></script>
     <script src="js/pixi-legacy.min.js"></script>
     <script src="js/angular.min.js"></script>
@@ -33,6 +31,8 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon"/>
   </head>
   <body ng-controller="ZombieController as zm">
+	<script src="chs.js"></script>
+	<script src="/game/zh/core.js"></script>
     <div class="message" ng-if="zm.message">
       <p>{{zm.message}}</p>
     </div>
