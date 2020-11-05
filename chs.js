@@ -964,11 +964,12 @@ var cnExcludePostfix = [
 	/:?\s*\d+%\s*$/, //12%
 ]
 
+
 //正则替换，带数字的固定格式句子
 //纯数字：(\d+)
 //逗号：([\d\.,]+)
 //小数点：([\d\.]+)
 //原样输出的字段：(.+)
-var cnRegReplace = new gityxGlobal.Map([
+var cnRegReplace = new Map([
 
 ]);
