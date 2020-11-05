@@ -116,12 +116,14 @@ function zoom(change, coords) {
   if (change > 0) {
     if (gc.scale.x < 10) {
       gc.scale.x = gc.scale.y = gc.scale.x * 1.1;
-      Zombies.zombieCursor.scale.x = Zombies.zombieCursor.scale.y = Zombies.zombieCursor.scale.x * 1.1
+      if (Zombies.zombieCursor && Zombies.zombieCursor.scale) // .scale is undefined sometimes, don't know why yet
+        Zombies.zombieCursor.scale.x = Zombies.zombieCursor.scale.y = Zombies.zombieCursor.scale.x * 1.1
     }
   } else {
     if (Math.max(gcWidth, gcHeight) > Math.min(canvasSize.y, canvasSize.x) * 0.8) {
       gc.scale.x = gc.scale.y = gc.scale.x * 0.9;
-      Zombies.zombieCursor.scale.x = Zombies.zombieCursor.scale.y = Zombies.zombieCursor.scale.x * 0.9;
+      if (Zombies.zombieCursor && Zombies.zombieCursor.scale) // .scale is undefined sometimes, don't know why yet
+        Zombies.zombieCursor.scale.x = Zombies.zombieCursor.scale.y = Zombies.zombieCursor.scale.x * 0.9;
     }
   }
 
@@ -182,8 +184,9 @@ function centerGameContainer(resetZoom = false) {
     if (Zombies.zombieCursor)
       Zombies.zombieCursor.scale.x = Zombies.zombieCursor.scale.y = Zombies.zombieCursorScale * canvasSize.defaultScale;
   }
-  gameContainer.x = (canvasSize.x - gameContainer.width) / 2;
-  gameContainer.y = (canvasSize.y - gameContainer.height) / 2;
+  
+  gameContainer.x = (canvasSize.x - gameFieldSize.x * gameContainer.scale.x) / 2;
+  gameContainer.y = (canvasSize.y - gameFieldSize.y * gameContainer.scale.y) / 2;
 }
 
 function scrollGameContainer(timeDiff) {
@@ -262,6 +265,7 @@ function update(timeDiff) {
   Humans.update(timeDiff);
   Zombies.update(timeDiff);
   Creatures.update(timeDiff);
+  Skeleton.update(timeDiff);
   Particles.update(timeDiff);
 }
 
@@ -293,7 +297,7 @@ function startGame() {
   setupContainers(app);
 
   app.loader
-    .add('sprites/grass.png')
+    .add('sprites/ground.json')
     .add('sprites/megagraveyard.png')
     .add('sprites/graveyard.json')
     .add('sprites/buildings.json')
@@ -306,18 +310,19 @@ function startGame() {
     .add('sprites/golem.json')
     .add('sprites/bonecollector.json')
     .add('sprites/harpy.json')
-    .add('sprites/objects.json')
+    .add('sprites/objects2.json')
     .add('sprites/fenceposts.json')
-    .add('sprites/trees.json')
+    .add('sprites/trees2.json')
     .add('sprites/fortress.json')
     .add('sprites/tank.json')
+    .add('sprites/skeleton.json')
     .load(function(){
 
     GameModel.app = app;
 
     setGameFieldSizeForLevel();
 
-    grass = new PIXI.TilingSprite(PIXI.Texture.from('sprites/grass.png'));
+    grass = new PIXI.TilingSprite(PIXI.Texture.from('grass.png'));
     grass.width = gameFieldSize.x;
     grass.height = gameFieldSize.y;
     backgroundContainer.addChild(grass);

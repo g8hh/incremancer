@@ -6,6 +6,7 @@ Particles = {
     Blasts.initialize();
     Smoke.initialize();
     Fragments.initialize();
+    PrestigePoints.initialize();
   },
   update(timeDiff) {
     Blood.update(timeDiff);
@@ -14,9 +15,98 @@ Particles = {
     Blasts.update(timeDiff);
     Smoke.update(timeDiff);
     Fragments.update(timeDiff);
+    PrestigePoints.update(timeDiff);
   }
 }
 
+PrestigePoints = {
+  maxParts : 5,
+  partCounter : 0,
+  container : null,
+  sprites : [],
+  speed : 20,
+  targetElement : null,
+  animElement : null,
+	initialize() {
+    if (!this.container) {
+      this.container = new PIXI.Container();
+      foregroundContainer.addChild(this.container);
+      this.texture = PIXI.Texture.from("pp.png");
+    }
+
+    this.targetElement = document.getElementById("prestige-button");
+    this.animElement = document.getElementById("prestige-bg");
+
+    if (this.sprites.length < this.maxParts) {
+      for (var i = 0; i < this.maxParts; i++) {
+        var sprite = new PIXI.Sprite(this.texture);
+        sprite.anchor = {x:0.5, y:0.5};
+        this.sprites.push(sprite);
+        sprite.visible = false;
+        this.container.addChild(sprite);
+      }
+    }
+	},
+	update(timeDiff) {
+    if (!GameModel.persistentData.particles) {
+      this.container.visible = false;
+      return;
+    } else {
+      this.container.visible = true;
+    }
+    var target = {x:0, y:0};
+    if (this.targetElement != null) {
+      var rect  = this.targetElement.getBoundingClientRect();
+      target = {x : rect.x + rect.width / 2, y : rect.y + rect.height / 2};
+      target.x -= gameContainer.x;
+      target.y -= gameContainer.y;
+      target.x = target.x / gameContainer.scale.x;
+      target.y = target.y / gameContainer.scale.y;
+      
+    }
+		for (var i = 0; i < this.sprites.length; i++) {
+      if (this.sprites[i].visible) {
+        this.updatePart(this.sprites[i], timeDiff, target);
+      }
+		}
+  },
+  updatePart(sprite, timeDiff, target) {
+    var vector = ZmMap.normalizeVector({x : target.x - sprite.x, y: target.y - sprite.y});
+    var xDiff = (vector.x * 300) - sprite.xSpeed;
+    var yDiff = (vector.y * 300) - sprite.ySpeed;
+    sprite.xSpeed += xDiff * timeDiff;
+    sprite.ySpeed += yDiff * timeDiff;
+    sprite.x += sprite.xSpeed * timeDiff;
+    sprite.y += sprite.ySpeed * timeDiff;
+    if (fastDistance(sprite.x, sprite.y, target.x, target.y) < 30) {
+      sprite.visible = false;
+      sprite.x = 100;
+      sprite.y = 100;
+      if (this.animElement) {
+        var prestigeBg = this.animElement;
+        prestigeBg.classList.toggle("levelup");
+        setTimeout(function() {
+          prestigeBg.classList.toggle("levelup");
+        }, 3000);
+      }
+    }
+  },
+  newPart(x,y) {
+    if (!this.container.visible) {
+      return;
+    }
+    var sprite = this.sprites[this.partCounter++];
+    if (this.partCounter >= this.maxParts) {
+      this.partCounter = 0;
+    }
+    sprite.x = x;
+    sprite.y = y - 10;
+    sprite.visible = true;
+    sprite.scale = {x:2,y:2};
+    sprite.xSpeed = 0;
+    sprite.ySpeed = -100;
+  }
+};
 
 Blood = {
   maxParts : 1000,
@@ -61,6 +151,12 @@ Blood = {
     }
 	},
 	update(timeDiff) {
+    if (!GameModel.persistentData.particles) {
+      this.container.visible = false;
+      return;
+    } else {
+      this.container.visible = true;
+    }
     this.visibleParts = 0;
 		for (var i = 0; i < this.sprites.length; i++) {
       if (this.sprites[i].visible) {
@@ -113,6 +209,9 @@ Blood = {
     sprite.ySpeed = -1 * (plague ? this.spraySpeed * 1.5 : this.spraySpeed);
   },
   newSplatter(x,y) {
+    if (!this.container.visible) {
+      return;
+    }
     if (this.visibleParts < 0.9 * this.maxParts) {
       for (var i=0; i<this.partsPerSplatter; i++) {
         this.newPart(x, y, false);
@@ -125,6 +224,9 @@ Blood = {
     
   },
   newPlagueSplatter(x,y) {
+    if (!this.container.visible) {
+      return;
+    }
     for (var i=0; i < this.partsPerSplatter; i++) {
       this.newPart(x, y, true);
     }
@@ -623,7 +725,7 @@ Smoke = {
 	},
 	initialize() {
     this.viewableArea = viewableArea;
-    this.allowTint = GameModel.app.renderer.type == 1;
+    this.allowTint = GameModel.app && GameModel.app.renderer && GameModel.app.renderer.type == 1;
 
     if (!this.texture) {
       this.texture = this.getTexture();
@@ -642,6 +744,12 @@ Smoke = {
 
 	},
 	update(timeDiff) {
+    if (!GameModel.persistentData.particles) {
+      this.container.visible = false;
+      return;
+    } else {
+      this.container.visible = true;
+    }
 		for (var i = 0; i < this.sprites.length; i++) {
       if (this.sprites[i].visible) {
         this.updatePart(this.sprites[i], timeDiff);
@@ -676,22 +784,34 @@ Smoke = {
     sprite.y = y - variance + (Math.random() * variance * 2);
   },
   newFireSmoke(x, y) {
+    if (!this.container.visible) {
+      return;
+    }
     this.tint = 0xFFFFFF;
     this.newSmoke(x, y, 3);
   },
   newCloud(x, y) {
+    if (!this.container.visible) {
+      return;
+    }
     this.tint = 0x00FF00;
     for (var i = 0; i < 10; i++) {
       this.newSmoke(x, y, 16);
     }
   },
   newDroneCloud(x, y) {
+    if (!this.container.visible) {
+      return;
+    }
     this.tint = 0xFFFFFF;
     for (var i = 0; i < 10; i++) {
       this.newSmoke(x, y, 24);
     }
   },
   newZombieSpawnCloud(x,y) {
+    if (!this.container.visible) {
+      return;
+    }
     this.tint = 0x00FF00;
     for (var i = 0; i < 5; i++) {
       this.newSmoke(x, y, 6);
@@ -739,6 +859,12 @@ Fragments = {
     }
 	},
 	update(timeDiff) {
+    if (!GameModel.persistentData.particles) {
+      this.container.visible = false;
+      return;
+    } else {
+      this.container.visible = true;
+    }
     this.visibleParts = 0;
 		for (var i = 0; i < this.sprites.length; i++) {
       if (this.sprites[i].visible) {
@@ -764,7 +890,9 @@ Fragments = {
     }    
   },
   newPart(x, y, tint) {
-
+    if (!this.container.visible) {
+      return;
+    }
     if (this.viewableArea.hideParticle(x,y)) {
       return;
     }
@@ -788,6 +916,9 @@ Fragments = {
     sprite.ySpeed = -1 * (10 + (Math.random() * this.spraySpeed));
   },
   newFragmentExplosion(x, y, tint) {
+    if (!this.container.visible) {
+      return;
+    }
     for (var i=0; i < this.partsPerSplatter; i++) {
       this.newPart(x, y, tint);
     }

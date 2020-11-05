@@ -1,6 +1,6 @@
 Humans = {
 
-  map : Map,
+  map : ZmMap,
   maxWalkSpeed : 15,
   maxRunSpeed : 35,
   minSecondsTostand : 1,
@@ -26,7 +26,7 @@ Humans = {
   attackDamage : 5,
   fadeSpeed : 0.1,
   plagueTickTimer : 5,
-  healTickTimer : 4,
+  healTickTimer : 5,
   burnTickTimer : 5,
   smokeTimer : 0.3,
   fastDistance:fastDistance,
@@ -35,11 +35,11 @@ Humans = {
   graveYardPosition : {},
 
   states : {
-    standing:"standing",
-    walking:"walking",
-    attacking:"attacking",
-    fleeing:"fleeing",
-    escaping:"escaping"
+    standing:1,
+    walking:2,
+    attacking:3,
+    fleeing:4,
+    escaping:5
   },
 
   randomSecondsToStand() {
@@ -60,6 +60,8 @@ Humans = {
       Bones.newBones(human.x, human.y);
       human.dead = true;
       GameModel.addBrains(1);
+      Skeleton.addXp(GameModel.level);
+      Skeleton.testForLoot();
       
       if (human.tank) {
         Blasts.newDroneBlast(human.x, human.y - 5);
@@ -152,32 +154,28 @@ Humans = {
       return (level - 19) * 100;
     }
     if (level < 64) {
-      return (level - 29) * 150;
-    }
-    if (level < 78) {
-      return (level - 37) * 200;
+      return (level - 39) * 300;
     }
     if (level < 85) {
-      return (level - 45) * 250;
-    }
-    if (level < 92) {
-      return (level - 52) * 300;
+      return (level - 49) * 500;
     }
     if (level > 499) {
-      return 6000000 * Math.pow(1.05, level - 499);
+      return 8500000 * Math.pow(1.03, level - 499);
     }
-    if (level > 99) {
-      return 16000 * Math.pow(1.015, level-99);
-    }
-    return (level - 68) * 500;
+
+    return 17800 * Math.pow(1.015, level - 84);
   },
 
   getAttackDamage() {
     if (GameModel.level == 1) {
-      this.attackDamage = 4;
+      this.attackDamage = 2;
       return;
     }
     if (GameModel.level == 2) {
+      this.attackDamage = 4;
+      return;
+    }
+    if (GameModel.level == 3) {
       this.attackDamage = 5;
       return;
     }
@@ -360,6 +358,11 @@ Humans = {
     human.xSpeed = human.targetVector.x * humanSpeedMod;
     human.ySpeed = human.targetVector.y * humanSpeedMod;
 
+    if (isNaN(human.xSpeed) || isNaN(human.ySpeed)) {
+      human.xSpeed = 0;
+      human.ySpeed = 0;
+    }
+
     human.position.x += human.xSpeed * timeDiff;
     human.position.y += human.ySpeed * timeDiff;
     human.zIndex = human.position.y;
@@ -463,6 +466,9 @@ Humans = {
   },
 
   burnHuman(human, damage) {
+    if (!human)
+      return;
+      
     if (!human.burning) {
       human.burnTickTimer = this.burnTickTimer;
       human.smokeTimer = this.smokeTimer;
@@ -482,9 +488,22 @@ Humans = {
       human.plagueTickTimer = this.plagueTickTimer;
       Exclamations.newPoison(human);
       human.plagueTicks--;
+      if (this.pandemic) {
+        this.pandemicBullet(human);
+      }
       if (human.plagueTicks <= 0) {
         human.infected = false;
         human.plagueDamage = 0;
+      }
+    }
+  },
+
+  pandemicBullet(human) {
+    for (var i = 0; i < this.aliveHumans.length; i++) {
+      if (Math.abs(this.aliveHumans[i].x - human.x) < 30 && Math.abs(this.aliveHumans[i].y - human.y) < 30) {
+        if (Math.random() < 0.3) {
+          Bullets.newBullet(human, this.aliveHumans[i], GameModel.zombieDamage / 2, true);
+        }
       }
     }
   },
@@ -621,7 +640,7 @@ Humans = {
 };
 
 Police = {
-  map:Map,
+  map:ZmMap,
   maxWalkSpeed : 15,
   maxRunSpeed : 40,
   police : [],
@@ -643,17 +662,17 @@ Police = {
   radioTime : 30,
 
   states : {
-    shooting : "shooting",
-    attacking : "attacking",
-    walking : "walking",
-    running : "running",
-    standing : "standing"
+    shooting : 1,
+    attacking : 2,
+    walking : 3,
+    running : 4,
+    standing : 5
   },
 
   dogStates : {
-    following : "following",
-    attacking : "attacking",
-    hunting : "hunting"
+    following : 1,
+    attacking : 2,
+    hunting : 3
   },
 
   isExtraPolice() {
@@ -1047,7 +1066,7 @@ Police = {
 }
 
 Army = {
-  map:Map,
+  map:ZmMap,
   maxWalkSpeed : 20,
   maxRunSpeed : 50,
   armymen : [],
@@ -1068,11 +1087,11 @@ Army = {
   assaultStarted : false,
 
   states : {
-    shooting : "shooting",
-    attacking : "attacking",
-    walking : "walking",
-    running : "running",
-    standing : "standing"
+    shooting : 1,
+    attacking : 2,
+    walking : 3,
+    running : 4,
+    standing : 5
   },
 
   isExtraArmy() {
@@ -1479,7 +1498,7 @@ Army = {
 
 
 Tanks = {
-  map:Map,
+  map:ZmMap,
 
   speed : 20,
   tanks : [],

@@ -11,6 +11,9 @@ angular.module('zombieApp', [])
   .controller('ZombieController', ['$scope','$interval','$document',function($scope, $interval, $document) {
     var zm = this;
     zm.model = GameModel;
+    zm.skeleton = function() {
+      return Skeleton.persistent;
+    }
     zm.spells = Spells;
     zm.keysPressed = KeysPressed;
 
@@ -65,6 +68,7 @@ angular.module('zombieApp', [])
           zm.sidePanels.factory = true;
           zm.upgrades = PartFactory.generators;
           zm.factoryStats = PartFactory.factoryStats();
+          zm.factory.updateDelays();
           break;
         case "prestige":
           zm.upgrades = Upgrades.prestigeUpgrades.filter(upgrade => upgrade.cap == 0 || zm.currentRank(upgrade) < upgrade.cap);
@@ -162,10 +166,12 @@ angular.module('zombieApp', [])
 
     // ---- Factory Functions ---- //
     zm.factory = {
+      delays : [],
       changeFactoryTab(tab) {
         zm.factoryTab = tab;
         if (tab == 'parts') {
           zm.upgrades = PartFactory.generators;
+          this.updateDelays();
         } else {
           zm.upgrades = CreatureFactory.creatures;
         }
@@ -235,6 +241,12 @@ angular.module('zombieApp', [])
       },
       creatureStats(creature) {
         return CreatureFactory.creatureStats(creature);
+      },
+      updateDelays() {
+        this.delays = [];
+        for (var i = 0; i < PartFactory.generatorsApplied.length; i++) {
+          this.delays[PartFactory.generatorsApplied[i].id] = (-1 * (PartFactory.generatorsApplied[i].time - PartFactory.generatorsApplied[i].timeLeft)).toFixed(2);
+        }
       }
     }
     // ---- Factory Functions ---- //
@@ -268,7 +280,7 @@ angular.module('zombieApp', [])
           this.levelRanges.push(this.start - this.levelsPerPage);
         }
         this.levelRanges.push(this.start);
-        if (this.start + this.levelsPerPage < zm.model.persistentData.allTimeHighestLevel) {
+        if (this.start + this.levelsPerPage <= zm.model.persistentData.allTimeHighestLevel + 1) {
           this.levelRanges.push(this.start +  this.levelsPerPage);
         }
         
@@ -319,7 +331,7 @@ angular.module('zombieApp', [])
     }
 
     zm.cancelConstruction = function() {
-      if(confirm("Are you sure you want to cancel construction?")) {
+      if(confirm("Are you sure you want to cancel construction? Used materials will not be refunded")) {
         Upgrades.cancelConstruction();
         zm.upgrades = Upgrades.getAvailableConstructions();
       }
@@ -373,8 +385,8 @@ angular.module('zombieApp', [])
           return "+" + upgrade.effect + " bones per second";
         case Upgrades.types.brainsRate:
           return "+" + upgrade.effect + " brains per second";
-        case Upgrades.types.plagueDamagePC:
-          return "+" + formatWhole(Math.round(upgrade.effect * 100)) + "% plague damage";
+        case Upgrades.types.plagueDamage:
+          return "+" + formatWhole(upgrade.effect) + " plague damage";
         case Upgrades.types.spitDistance:
           return "+" + upgrade.effect + " spit distance";
         case Upgrades.types.blastHealing:
@@ -513,6 +525,10 @@ angular.module('zombieApp', [])
       zm.model.persistentData.showfps = !zm.model.persistentData.showfps;
     }
 
+    zm.toggleParticles = function() {
+      zm.model.persistentData.particles = !zm.model.persistentData.particles;
+    }
+
     zm.isShowPrestige = function() {
       if (typeof zm.model.persistentData.prestigePointsEarned  === 'undefined')
         return false;
@@ -543,6 +559,8 @@ angular.module('zombieApp', [])
     zm.updateMessages = function(timeDiff) {
       if (zm.message) {
         zm.messageTimer -= timeDiff;
+        if (zm.model.messageQueue.length > 0)
+          zm.messageTimer -= timeDiff;
         if (zm.messageTimer < 0) {
           zm.message = false;
           zm.messageTimer = 4;
@@ -574,6 +592,30 @@ angular.module('zombieApp', [])
       } else {
         Upgrades.infuseRune(rune, cost, zm.infusionAmount);
       }
+    }
+
+    zm.shatterPercent = function(rune) {
+      return Upgrades.shatterPercent(rune);
+    }
+
+    zm.shatterBloodCost = function(rune) {
+      return Upgrades.shatterBloodCost(rune);
+    }
+
+    zm.shatterSatiate = function(runetype, rune) {
+      Upgrades.infuseRune(runetype, "blood", this.shatterBloodCost(rune));
+    }
+
+    zm.canShatter = function() {
+      return Upgrades.canShatter();
+    }
+
+    zm.doShatter = function() {
+      Upgrades.doShatter();
+    }
+
+    zm.shatterEffect = function() {
+      return Upgrades.shatterEffect() * 100;
     }
 
     zm.infuseButtonText = function() {
@@ -642,6 +684,200 @@ angular.module('zombieApp', [])
       
     }
 
+    zm.skeletonTimer = function() {
+      return Skeleton.skeletonTimer();
+    }
+
+    // ---- Skeleton Functions ---- //
+    zm.skeletonMenu = {
+      isShown :false,
+      equipped : [],
+      show() {
+        this.isShown = !this.isShown;
+        if (this.isShown) {
+          this.updateEquippedItems();
+          setTimeout(function(){
+            var elements = document.getElementsByClassName("item legendary");
+            for (var i = 0; i < elements.length; i++) {
+              elements[i].style.animationDelay = (Math.random() * 4).toFixed(2) + "s";
+            }
+          },100);
+        }
+      },
+      acceptOffer() {
+        Skeleton.acceptOffer();
+        this.isShown = false;
+      },
+      anotherOffer() {
+        return Skeleton.persistent.skeletons > 0 && GameModel.persistentData.trophies.length >= Skeleton.persistent.xpRate * 20;
+      },
+      xpPercent() {
+        return Math.round(Math.min(1, zm.skeleton().xp / Skeleton.xpForNextLevel()) * 100);
+      },
+      xpForNextLevel() {
+        return Skeleton.xpForNextLevel();
+      },
+      xpRate() {
+        return Skeleton.persistent.xpRate * 100;
+      },
+      isAlive() {
+        return Skeleton.isAlive();
+      },
+      timer() {
+        return Math.ceil(Skeleton.skeletonTimer());
+      },
+      updateEquippedItems() {
+        this.equipped = [];
+        var helmetItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.helmet.id);
+        if (helmetItems.length > 0) {
+          this.equipped.push([helmetItems[0]]);
+        } else {
+          this.equipped.push([{name : "Helmet Slot", s : Skeleton.lootPositions.helmet.id, id : -1}]);
+        }
+        var row2 = [];
+        var swordItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.sword.id);
+        if (swordItems.length > 0) {
+          row2.push(swordItems[0]);
+        } else {
+          row2.push({name : "Sword Slot", s : Skeleton.lootPositions.sword.id, id : -2});
+        }
+        var chestItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.chest.id);
+        if (chestItems.length > 0) {
+          row2.push(chestItems[0]);
+        } else {
+          row2.push({name : "Chest Slot", s : Skeleton.lootPositions.chest.id, id : -3});
+        }
+        var shieldItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.shield.id);
+        if (shieldItems.length > 0) {
+          row2.push(shieldItems[0]);
+        } else {
+          row2.push({name : "Shield Slot", s : Skeleton.lootPositions.shield.id, id : -4});
+        }
+        this.equipped.push(row2);
+        var row3 = [];
+        var gloveItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.gloves.id);
+        if (gloveItems.length > 0) {
+          row3.push(gloveItems[0]);
+        } else {
+          row3.push({name : "Gloves Slot", s : Skeleton.lootPositions.gloves.id, id : -5});
+        }
+        var legItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.legs.id);
+        if (legItems.length > 0) {
+          row3.push(legItems[0]);
+        } else {
+          row3.push({name : "Legs Slot", s : Skeleton.lootPositions.legs.id, id : -6});
+        }
+        var bootItems = Skeleton.persistent.items.filter(i => i.q && i.s == Skeleton.lootPositions.boots.id);
+        if (bootItems.length > 0) {
+          row3.push(bootItems[0]);
+        } else {
+          row3.push({name : "Boots Slot", s : Skeleton.lootPositions.boots.id, id : -7});
+        }        
+        this.equipped.push(row3);
+        this.equipped.push([{name : "Destroy Items", s : -1, id : -8}]);
+
+      },
+      inventoryItems() {
+        return Skeleton.persistent.items.filter(i => !i.q).sort((a,b) => (b.r * b.l) - (a.r * a.l));
+      },
+      itemName(item) {
+        return item.name || Skeleton.getLootName(item);
+      },
+      itemSubName(item) {
+        if (!item.name) {
+          switch (item.r) {
+            case Skeleton.rarity.common:
+              return "Common level " + item.l + " " + this.itemType(item);
+            case Skeleton.rarity.rare:
+              return "Rare level " + item.l + " " + this.itemType(item);
+            case Skeleton.rarity.epic:
+              return "Epic level " + item.l + " " + this.itemType(item);
+            case Skeleton.rarity.legendary:
+              return "Legendary level " + item.l + " " + this.itemType(item);
+          }
+        }
+        if (item.s == -1) {
+          return "Click this to destroy all non-equipped items. Or drag items here to destroy them.";
+        }
+      },
+      itemStats(item) {
+        return Skeleton.getLootStats(item);
+      },
+      itemEffects(item) {
+        return Skeleton.getSpecialEffects(item);
+      },
+      itemType(item) {
+        switch(item.s) {
+          case -1:
+            return "trash";
+          case Skeleton.lootPositions.helmet.id:
+            return "helmet";
+          case Skeleton.lootPositions.chest.id:
+            return "chest";
+          case Skeleton.lootPositions.gloves.id:
+            return "gloves";
+          case Skeleton.lootPositions.legs.id:
+            return "legs";
+          case Skeleton.lootPositions.boots.id:
+            return "boots";
+          case Skeleton.lootPositions.sword.id:
+            return "sword";
+          case Skeleton.lootPositions.shield.id:
+            return "shield";
+        }
+      },
+      itemClass(item) {
+        return item.name ? "empty" : Skeleton.getLootClass(item);
+      },
+      itemById(id) {
+        var itemById = false;
+        Skeleton.persistent.items.forEach(function(item){
+          if (item.id == id)
+            itemById = item;
+        });
+        return itemById;
+      },
+      itemDropped(itemId, target) {
+        var draggedItem = false;
+        Skeleton.persistent.items.forEach(function(item){
+          if (item.id == itemId)
+            draggedItem = item;
+        });
+
+        if (target == -1) {
+          Skeleton.destroyItem(draggedItem);
+        } else {
+          if (draggedItem.s == target) {
+            Skeleton.persistent.items.forEach(function(item){
+              if (item.s == target) {
+                item.q = false;
+              }
+            });
+            draggedItem.q = true;
+            Upgrades.applyUpgrades();
+          }
+          this.updateEquippedItems();
+        }
+        
+      },
+      equipItem(itemClicked) {
+        Skeleton.persistent.items.forEach(function(item){
+          if (item.s == itemClicked.s) {
+            item.q = false;
+          }
+        });
+        itemClicked.q = true;
+        Upgrades.applyUpgrades();
+        this.updateEquippedItems();
+      },
+      trashAll() {
+        if (confirm("Are you sure you want to destroy all non-equipped items? You will earn " + formatWhole(Skeleton.xpForItems()) + " xp")) {
+          Skeleton.destroyAllItems();
+        }
+      }
+    }
+    // ---- Skeleton Functions ---- //
+
     function update() {
       var updateTime = new Date().getTime();
       var timeDiff = (Math.min(1000, Math.max(updateTime - zm.lastUpdate,0))) / 1000;
@@ -699,8 +935,107 @@ angular.module('zombieApp', [])
       templateUrl: "./templates/prestigemenu.html"
     };
   })
+  .directive('championsHoldMenu',function(){
+    return {
+      templateUrl: "./templates/championshold.html"
+    };
+  })
   .directive('factoryMenu',function(){
     return {
       templateUrl: "./templates/factorymenu.html"
     };
-  });
+  })
+  .directive('draggableItem', ['$rootScope', function($rootScope){
+    return {
+      restrict : 'A',
+      link : function(scope, el, attrs, controller) {
+        
+        var itemId = scope.item.id;
+
+        if (attrs.draggableItem == "true") {          
+          angular.element(el).attr("draggable", "true");          
+          el.bind("dragstart", function (e) {
+            document.getElementById("champ-hold").classList.toggle("no-tooltip");
+            e.dataTransfer.setData('text', itemId);
+            var rect = el[0].getBoundingClientRect();
+            e.dataTransfer.setDragImage(el[0], rect.width/2, rect.height/2);
+            $rootScope.$emit("item-drag-start", itemId);
+            setTimeout(function(){
+              angular.element(el)[0].style.opacity="0.3";
+            });
+          });
+          el.bind("dragend", function(e){
+            document.getElementById("champ-hold").classList.toggle("no-tooltip");
+            angular.element(el)[0].style.opacity="";
+            $rootScope.$emit("item-drag-end", itemId);
+          });
+        }
+      }
+    }
+  }])
+  .directive('droppableTarget', ['$rootScope', function($rootScope){
+    return {
+      restrict : 'A',
+      link : function(scope, el, attrs, controller) {
+
+        var type = scope.item.s;
+
+        el.bind("dragover", function (e) {
+          if (e.preventDefault) {
+              e.preventDefault(); // Necessary. Allows us to drop.
+          }
+
+          e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
+          return false;
+        });
+
+        el.bind("dragenter", function (e) {
+          if (e.target && e.target.classList && e.target.classList.contains("icon")) {
+            angular.element(e.target.parentElement).addClass('over');
+          }
+          
+        });
+
+        el.bind("dragleave", function (e) {
+          if (e.target && e.target.classList && e.target.classList.contains("icon")) {
+            angular.element(e.target.parentElement).removeClass('over');
+          }
+        });
+
+        el.bind("drop", function (e) {
+          if (e.preventDefault) {
+              e.preventDefault(); // Necessary. Allows us to drop.
+          }
+
+          if (e.stopPropagation) {
+              e.stopPropagation(); // Necessary. Allows us to drop.
+          }
+          if (e.target.classList.contains("icon")) {
+            angular.element(e.target.parentElement).removeClass('over');
+          }
+          var data = e.dataTransfer.getData("text");
+          var item = scope.zm.skeletonMenu.itemById(data);
+          if (item) {
+            var cssClass = scope.zm.skeletonMenu.itemType(item);
+            document.getElementsByClassName("equipped")[0].classList.remove(cssClass);
+          }
+          scope.zm.skeletonMenu.itemDropped(data, type);
+        });
+        $rootScope.$on("item-drag-start", function(e, result){
+
+          var item = scope.zm.skeletonMenu.itemById(result);
+          if (item) {
+            var cssClass = scope.zm.skeletonMenu.itemType(item);
+            document.getElementsByClassName("equipped")[0].classList.add(cssClass);
+          }
+        });
+        $rootScope.$on("item-drag-end", function(e, result){
+          var item = scope.zm.skeletonMenu.itemById(result);
+          if (item) {
+            var cssClass = scope.zm.skeletonMenu.itemType(item);
+            document.getElementsByClassName("equipped")[0].classList.remove(cssClass);
+          }
+        });
+      }
+    }
+  }]);

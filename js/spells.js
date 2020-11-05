@@ -74,6 +74,38 @@ Spells = {
       end() {
         Zombies.super = false;
       }
+    },
+    {
+      id : 6,
+      name : "Incinerate",
+      tooltip : "Burns humans near the skeleton champion",
+      itemText : "Has a chance to cast Incinerate when attacking, burning all humans within a large radius of the Skeleon",
+      icon : "",
+      cooldown : 1,
+      duration : 10,
+      energyCost : 10,
+      start() {
+        Skeleton.incinerate();
+      },
+      end() {
+
+      }
+    },
+    {
+      id : 7,
+      name : "Pandemic",
+      tooltip : "Causes plague to spread",
+      itemText : "Has a chance to cast Pandemic when attacking, causing infected humans to spread the plague to each other for 20 seconds",
+      icon : "",
+      cooldown : 10,
+      duration : 20,
+      energyCost : 10,
+      start() {
+        Humans.pandemic = true;
+      },
+      end() {
+        Humans.pandemic = false;
+      }
     }
   ],
   lockAllSpells() {
@@ -112,6 +144,19 @@ Spells = {
     spell.timer = spell.duration;
     spell.start();
     GameModel.sendMessage(spell.name);
+  },
+  castSpellNoMana(spellId) {
+    var spellList = this.spells.filter(sp => sp.id == spellId);
+    if (spellList.length > 0) {
+      var spell = spellList[0];
+      if (spell.onCooldown || spell.active)
+        return false;
+      
+      spell.active = true;
+      spell.timer = spell.duration;
+      spell.start();
+      GameModel.sendMessage(spell.name);
+    }
   },
   updateSpells(timeDiff) {
     for (var i = 0; i < this.spells.length; i++) {
